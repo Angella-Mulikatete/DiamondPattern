@@ -42,18 +42,19 @@ library LibDiamond {
         mapping(address => FacetFunctionSelectors) facetFunctionSelectors;
         // facet addresses
         address[] facetAddresses;
+        mapping(bytes4 => bool) supportedInterfaces;
         // owner of the contract
         address contractOwner;
-        string  _name;
+        string  name;
+        string  symbol;
+        uint256 totalSupply;
 
-        // Token symbol
-        string  _symbol;
+        mapping(uint256 tokenId => address)  owners;
 
-        mapping(uint256 tokenId => address)  _owners;
+        mapping(address owner => uint256)  balances;
 
-        mapping(address owner => uint256)  _balances;
-
-        mapping(uint256 tokenId => address)  _tokenApprovals;
+        mapping(uint256 tokenId => address)  tokenApprovals;
+        mapping(address => mapping(address => bool)) operatorApprovals;
 
         bytes32  merkleRoot;
         address  tokenAddress;
@@ -63,6 +64,8 @@ library LibDiamond {
 
         uint256   TOKENS_PER_ETHER ;
         uint256  minPurchaseAmount ;
+        uint256 maxPurchaseAmount;
+        uint256 preSalePrice;
 
     }
 

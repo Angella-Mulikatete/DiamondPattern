@@ -13,7 +13,7 @@ contract MerkleFacet{
         require(_tokenAddress != address(0),"invalid address");
         require(_merkleRoot != bytes32(0),"invalid merkle root");
 
-        LibDiamond.DiamondStorage storage ds = new DiamondStorage();
+       LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
 
         ds.tokenAddress = _tokenAddress;
         ds.merkleRoot = _merkleRoot;
@@ -25,20 +25,17 @@ contract MerkleFacet{
     event claimSuccessful(address indexed account, uint256 indexed amount);
     event merkleRootUpdated(bytes32 indexed merkleRoot);
 
-    modifier onlyOwner {
-        require(owner == msg.sender, "You are Not the owner");
-        _;
-    }
+  
 
   function claim(uint256 amount,  bytes32[] calldata merkleProof) external{
-       LibDiamond.DiamondStorage storage ds = new DiamondStorage();
-        require(!isClaimed[msg.sender], "Already claimed");
-        IMerkle.MerkleProof  proof;
+       LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        require(!ds.isClaimed[msg.sender], "Already claimed");
+     
 
         // bytes32 node = keccak256(abi.encodePacked(account, amount));
         bytes32 node = keccak256(bytes.concat(keccak256(abi.encode(msg.sender, amount))));
 
-        bool isValidProof = proof.verify(merkleProof, merkleRoot, node);
+        bool isValidProof = MerkleProof.verify(merkleProof,  ds.merkleRoot, node);
 
         require(isValidProof, "Merkle proof is invalid");
 
@@ -49,22 +46,22 @@ contract MerkleFacet{
     }
 
     //updating merkel root
-    function updateMerkleRoot(bytes32 newMerkleRoot) external onlyOwner{
-        LibDiamond.DiamondStorage storage ds = new DiamondStorage();
+    function updateMerkleRoot(bytes32 newMerkleRoot) external{
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
         require(newMerkleRoot != bytes32(0),"invalid merkle root");
         ds.merkleRoot == newMerkleRoot;
         emit merkleRootUpdated(newMerkleRoot);
     }
 
    
-    function withdrawBalance() external onlyOwner{
-        LibDiamond.DiamondStorage storage ds = new DiamondStorage();
+    function withdrawBalance() external {
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
        uint256 balance = ERC721Facet(ds.tokenAddress).balanceOf(address(this));
-       require(ERC721Facet(tokenAddress).transfer(msg.sender, balance), "Transfer failed");
+       ERC721Facet(address(this)).safeMint(msg.sender, balance);
     }
 
     function hasClaimed(address _address) external view returns (bool) {
-        LibDiamond.DiamondStorage storage ds = new DiamondStorage();
-        return ds.claimed[_address];
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        return ds.isClaimed[_address];
     }
 }

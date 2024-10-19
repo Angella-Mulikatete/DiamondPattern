@@ -8,10 +8,10 @@ import "../contracts/facets/OwnershipFacet.sol";
 import "../contracts/Diamond.sol";
 
 import "./helpers/DiamondUtils.sol";
-import "../contracts/facets/ERC20Facet.sol";
+
 import "../contracts/facets/ERC721Facet.sol";
 import "../contracts/facets/MerkleFacet.sol";
-
+import "../contracts/facets/PreSaleFacet.sol";
 
 
 contract DiamondDeployer is DiamondUtils, IDiamondCut {
@@ -20,7 +20,6 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
     DiamondCutFacet dCutFacet;
     DiamondLoupeFacet dLoupe;
     OwnershipFacet ownerF;
-    ERC20Facet erc20Facet;
     ERC721Facet erc721Facet;
     MerkleFacet merkleFacet;
     PresaleFacet presaleFacet;
@@ -28,7 +27,7 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
     function testDeployDiamond() public {
         //deploy facets
         dCutFacet = new DiamondCutFacet();
-        diamond = new Diamond(address(this), address(dCutFacet), "Angie Tokens", "Angie", 18);
+        diamond = new Diamond(address(this), address(dCutFacet));
         dLoupe = new DiamondLoupeFacet();
         ownerF = new OwnershipFacet();
 
@@ -55,21 +54,13 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
 
         cut[2] = (
             FacetCut({
-                facetAddress: address(erc20Facet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("ERC20Facet")
-            })
-        );
-
-        cut[3] = (
-            FacetCut({
                 facetAddress: address(erc721Facet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("ERC721Facet")
             })
         );
 
-        cut[4] = (
+        cut[3] = (
             FacetCut({
                 facetAddress: address(merkleFacet),
                 action: FacetCutAction.Add,
@@ -77,17 +68,13 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
             })
         );
 
-         cut[5] = (
+         cut[4] = (
             FacetCut({
                 facetAddress: address(presaleFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("PresaleFacet")
             })
         );
-
-
-
-
 
         //upgrade diamond
         IDiamondCut(address(diamond)).diamondCut(cut, address(0x0), "");
