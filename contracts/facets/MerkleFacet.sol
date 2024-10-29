@@ -26,8 +26,7 @@ contract MerkleFacet{
     event merkleRootUpdated(bytes32 indexed merkleRoot);
 
   
-
-  function claim(uint256 amount,  bytes32[] calldata merkleProof) external{
+    function claim(uint256 amount,  bytes32[] calldata merkleProof) external{
        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
         require(!ds.isClaimed[msg.sender], "Already claimed");
      
