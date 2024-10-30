@@ -43,29 +43,7 @@ library LibDiamond {
         // facet addresses
         address[] facetAddresses;
         mapping(bytes4 => bool) supportedInterfaces;
-        // owner of the contract
-        address contractOwner;
-        string  name;
-        string  symbol;
-        uint256 totalSupply;
 
-        mapping(uint256 tokenId => address)  owners;
-
-        mapping(address owner => uint256)  balances;
-
-        mapping(uint256 tokenId => address)  tokenApprovals;
-        mapping(address => mapping(address => bool)) operatorApprovals;
-
-        bytes32  merkleRoot;
-        address  tokenAddress;
-        address owner;
-        uint256 totalTokensClaimed;
-        mapping(address => bool) isClaimed;
-
-        uint256   TOKENS_PER_ETHER ;
-        uint256  minPurchaseAmount ;
-        uint256 maxPurchaseAmount;
-        uint256 preSalePrice;
 
     }
 
@@ -80,26 +58,7 @@ library LibDiamond {
         }
     }
 
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
-
-    function setContractOwner(address _newOwner) internal {
-        DiamondStorage storage ds = diamondStorage();
-        address previousOwner = ds.contractOwner;
-        ds.contractOwner = _newOwner;
-        emit OwnershipTransferred(previousOwner, _newOwner);
-    }
-
-    function contractOwner() internal view returns (address contractOwner_) {
-        contractOwner_ = diamondStorage().contractOwner;
-    }
-
-    function enforceIsContractOwner() internal view {
-        if (msg.sender != diamondStorage().contractOwner)
-            revert NotDiamondOwner();
-    }
+ 
 
     event DiamondCut(
         IDiamondCut.FacetCut[] _diamondCut,

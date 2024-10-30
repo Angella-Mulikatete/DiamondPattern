@@ -10,25 +10,38 @@ pragma solidity ^0.8.0;
 
 import {LibDiamond} from "./libraries/LibDiamond.sol";
 import {IDiamondCut} from "./interfaces/IDiamondCut.sol";
-import {ERC20Storage} from "./libraries/LibErc20Storage.sol";
+// import {LibLending} from "./libraries/libLending.sol";
+import {NFTFacet} from "../contracts/facets/NftFacet.sol";
+import {LendingFacet} from "../contracts/facets/LendingFacet.sol";
 
 contract Diamond {
-    ERC20Storage public token;
-    constructor(address _contractOwner, address _diamondCutFacet) payable {
-        LibDiamond.setContractOwner(_contractOwner);
+    // ERC20Storage public token;
+    constructor(address _nftFacet, address _lendingFacet) payable {
+          LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
 
-        // Add the diamondCut external function from the diamondCutFacet
-        IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
-        bytes4[] memory functionSelectors = new bytes4[](1);
-        functionSelectors[0] = IDiamondCut.diamondCut.selector;
-        cut[0] = IDiamondCut.FacetCut({
-            facetAddress: _diamondCutFacet,
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: functionSelectors
-        });
-        LibDiamond.diamondCut(cut, address(0), "");
+        // Add Nft Facet
+        bytes4[]  memory nftSelectors = new bytes4[](2);
+        nftSelectors[0] = NFTFacet.depositNFT.selector;
 
-        token._owner = _contractOwner;
+
+        for(uint i = 0; i < nftSelectors.length; i++) {
+            ds.selectorToFacetAndPosition[nftSelectors[i]].facetAddress = _nftFacet;
+            ds.facetFunctionSelectors[_nftFacet].functionSelectors.push(nftSelectors[i]);
+            
+        }
+
+         
+        // Add Lending Facet
+        bytes4[] memory lendingSelectors = new bytes4[](3);
+        lendingSelectors[0] = LendingFacet.createLoan.selector;
+        lendingSelectors[1] = LendingFacet.repayLoan.selector;
+        lendingSelectors[2] = LendingFacet.liquidateLoan.selector;
+        
+        for(uint i = 0; i < lendingSelectors.length; i++) {
+            ds.selectorToFacetAndPosition[lendingSelectors[i]].facetAddress = _lendingFacet;
+            ds.facetFunctionSelectors[_lendingFacet].functionSelectors.push(lendingSelectors[i]);
+        }
+
     }
 
     // Find facet for function that is called and execute the

@@ -4,14 +4,15 @@ pragma solidity ^0.8.0;
 import "../contracts/interfaces/IDiamondCut.sol";
 import "../contracts/facets/DiamondCutFacet.sol";
 import "../contracts/facets/DiamondLoupeFacet.sol";
-import "../contracts/facets/OwnershipFacet.sol";
+// import "../contracts/facets/OwnershipFacet.sol";
 import "../contracts/Diamond.sol";
 
 import "./helpers/DiamondUtils.sol";
+// import "../contracts/facets/NftFacet.sol";
 
-import "../contracts/facets/ERC721Facet.sol";
-import "../contracts/facets/MerkleFacet.sol";
-import "../contracts/facets/PreSaleFacet.sol";
+// import "../contracts/facets/ERC721Facet.sol";
+// import "../contracts/facets/MerkleFacet.sol";
+// import "../contracts/facets/PreSaleFacet.sol";
 
 
 contract DiamondDeployer is DiamondUtils, IDiamondCut {
@@ -19,17 +20,18 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
     Diamond diamond;
     DiamondCutFacet dCutFacet;
     DiamondLoupeFacet dLoupe;
-    OwnershipFacet ownerF;
-    ERC721Facet erc721Facet;
-    MerkleFacet merkleFacet;
-    PresaleFacet presaleFacet;
+    // OwnershipFacet ownerF;
+    NFTFacet nftFacet;
+    LendingFacet lendingFacet;
+    // MerkleFacet merkleFacet;
+    // PresaleFacet presaleFacet;
 
     function testDeployDiamond() public {
         //deploy facets
         dCutFacet = new DiamondCutFacet();
-        diamond = new Diamond(address(this), address(dCutFacet));
+        diamond = new Diamond(address(nftFacet), address(lendingFacet));
         dLoupe = new DiamondLoupeFacet();
-        ownerF = new OwnershipFacet();
+        // ownerF = new OwnershipFacet();
 
         //upgrade diamond with facets
 
@@ -46,33 +48,17 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
 
         cut[1] = (
             FacetCut({
-                facetAddress: address(ownerF),
+                facetAddress: address(nftFacet),
                 action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("OwnershipFacet")
-            })
-        );
-
-        cut[2] = (
-            FacetCut({
-                facetAddress: address(erc721Facet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("ERC721Facet")
+                functionSelectors: generateSelectors("NFTFacet")
             })
         );
 
         cut[3] = (
             FacetCut({
-                facetAddress: address(merkleFacet),
+                facetAddress: address(lendingFacet),
                 action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("MerkleFacet")
-            })
-        );
-
-         cut[4] = (
-            FacetCut({
-                facetAddress: address(presaleFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("PresaleFacet")
+                functionSelectors: generateSelectors("LendingFacet")
             })
         );
 
