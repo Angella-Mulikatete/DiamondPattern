@@ -5,12 +5,12 @@ import "../contracts/interfaces/IDiamondCut.sol";
 import "../contracts/facets/DiamondCutFacet.sol";
 import "../contracts/facets/DiamondLoupeFacet.sol";
 // import "../contracts/facets/OwnershipFacet.sol";
-import "../contracts/Diamond.sol";
+import {Diamond} from "../contracts/Diamond.sol";
 
 import "./helpers/DiamondUtils.sol";
-// import "../contracts/facets/NftFacet.sol";
+import {NFTFacet} from  "../contracts/facets/NftFacet.sol";
 
-// import "../contracts/facets/ERC721Facet.sol";
+import {LendingFacet} from "../contracts/facets/LendingFacet.sol";
 // import "../contracts/facets/MerkleFacet.sol";
 // import "../contracts/facets/PreSaleFacet.sol";
 
@@ -36,7 +36,7 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](2);
+        FacetCut[] memory cut = new FacetCut[](3);
 
         cut[0] = (
             FacetCut({
@@ -54,7 +54,7 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
             })
         );
 
-        cut[3] = (
+        cut[2] = (
             FacetCut({
                 facetAddress: address(lendingFacet),
                 action: FacetCutAction.Add,
