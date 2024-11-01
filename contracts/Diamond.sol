@@ -20,7 +20,7 @@ contract Diamond {
           LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
 
         // Add Nft Facet
-        bytes4[]  memory nftSelectors = new bytes4[](2);
+        bytes4[]  memory nftSelectors = new bytes4[](1);
         nftSelectors[0] = NFTFacet.depositNFT.selector;
 
 

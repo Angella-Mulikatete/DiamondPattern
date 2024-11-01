@@ -6,6 +6,7 @@ pragma solidity ^0.8.0;
 * EIP-2535 Diamonds: https://eips.ethereum.org/EIPS/eip-2535
 /******************************************************************************/
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
+import { IERC20 } from "../interfaces/IERC20.sol";
 
 library LibDiamond {
     error InValidFacetCutAction();
@@ -33,6 +34,18 @@ library LibDiamond {
         bytes4[] functionSelectors;
         uint256 facetAddressPosition; // position of facetAddress in facetAddresses array
     }
+    // Loan struct to represent individual loans
+    struct Loan {
+        address borrower;
+        uint256 nftId;
+        address nftContract;
+        uint256 amount;
+        uint256 interest;
+        uint256 startTime;
+        uint256 duration;
+        bool active;
+    }
+
 
     struct DiamondStorage {
         // maps function selector to the facet address and
@@ -44,7 +57,19 @@ library LibDiamond {
         address[] facetAddresses;
         mapping(bytes4 => bool) supportedInterfaces;
 
+        // Lending Storage fields
+        // Maps loan ID to Loan struct
+        mapping(uint256 => Loan) loans;
+        // Total number of loans
+        uint256 totalLoans;
+        // Supported NFT contracts
+        mapping(address => bool) supportedNFTs;
+        // Collateral factors for each NFT
+        mapping(address => uint256) collateralFactors;
+        // ERC20 token used for lending
+        IERC20 lendingToken;
 
+     
     }
 
     function diamondStorage()

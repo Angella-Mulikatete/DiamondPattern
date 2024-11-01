@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { LibDiamond } from "../libraries/LibDiamond.sol";
-import { LibLending } from "../libraries/LibLending.sol";
+// import { LibLending } from "../libraries/LibLending.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
 import { SafeERC20 } from "../libraries/LibSafeErc20.sol";
 import {ReentrancyGuard} from "../interfaces/IReentrancy.sol";
@@ -18,28 +18,30 @@ contract LendingFacet is ReentrancyGuard {
     event NFTLiquidated(uint256 indexed loanId);
     
     modifier onlyActiveLoan(uint256 loanId) {
-        require(LibLending.lendingStorage().loans[loanId].active, "Loan not active");
+         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        require(ds.loans[loanId].active, "Loan not active");
         _;
     }
     
-    function createLoan(
+      function createLoan(
         address nftContract,
         uint256 nftId,
         uint256 amount,
         uint256 duration
     ) external nonReentrant returns (uint256) {
-        LibLending.LendingStorage storage ls = LibLending.lendingStorage();
-        
-        require(ls.supportedNFTs[nftContract], "NFT not supported");
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+
+        require(ds.supportedNFTs[nftContract], "NFT not supported");
         require(amount > 0, "Amount must be greater than 0");
         require(duration > 0, "Duration must be greater than 0");
-        
+
+        // Transfer NFT collateral
         ERC721(nftContract).transferFrom(msg.sender, address(this), nftId);
-        
-        uint256 loanId = ls.totalLoans++;
+
+        uint256 loanId = ds.totalLoans++;
         uint256 interest = calculateInterest(amount, duration);
-        
-        ls.loans[loanId] = LibLending.Loan({
+
+        ds.loans[loanId] = LibDiamond.Loan({
             borrower: msg.sender,
             nftId: nftId,
             nftContract: nftContract,
@@ -49,21 +51,22 @@ contract LendingFacet is ReentrancyGuard {
             duration: duration,
             active: true
         });
-        
-        ls.lendingToken.safeTransfer(msg.sender, amount);
-        
+
+        ds.lendingToken.safeTransfer(msg.sender, amount);
+
         emit LoanCreated(loanId, msg.sender, amount);
         return loanId;
     }
     
     function repayLoan(uint256 loanId) external nonReentrant onlyActiveLoan(loanId) {
-        LibLending.LendingStorage storage ls = LibLending.lendingStorage();
-        LibLending.Loan storage loan = ls.loans[loanId];
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+
+        LibDiamond.Loan storage loan = ds.loans[loanId];
         
         require(msg.sender == loan.borrower, "Not loan borrower");
         
         uint256 totalRepayment = loan.amount + loan.interest;
-        ls.lendingToken.safeTransferFrom(msg.sender, address(this), totalRepayment);
+        ds.lendingToken.safeTransferFrom(msg.sender, address(this), totalRepayment);
         
         ERC721(loan.nftContract).transferFrom(address(this), msg.sender, loan.nftId);
         
@@ -73,8 +76,8 @@ contract LendingFacet is ReentrancyGuard {
     }
     
     function liquidateLoan(uint256 loanId) external nonReentrant onlyActiveLoan(loanId) {
-        LibLending.LendingStorage storage ls = LibLending.lendingStorage();
-        LibLending.Loan storage loan = ls.loans[loanId];
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        LibDiamond.Loan storage loan = ds.loans[loanId];
         
         require(
             block.timestamp > loan.startTime + loan.duration,
@@ -95,6 +98,154 @@ contract LendingFacet is ReentrancyGuard {
     }
 }
 
+
+
+
+
+// import "forge-std/Test.sol";
+// import { LendingFacet } from "../src/LendingFacet.sol";
+// import { LibDiamond } from "../src/libraries/LibDiamond.sol";
+// import { IERC20 } from "../src/interfaces/IERC20.sol";
+// import { ERC721 } from "../src/interfaces/IERC721.sol";
+// import { MockERC20 } from "../test/mocks/MockERC20.sol";
+// import { MockERC721 } from "../test/mocks/MockERC721.sol";
+
+// contract LendingFacetTest is Test {
+//     LendingFacet public lendingFacet;
+//     MockERC20 public lendingToken;
+//     MockERC721 public nft;
+
+//     address borrower = address(0x123);
+//     uint256 nftId = 1;
+//     uint256 loanAmount = 1000 ether;
+//     uint256 loanDuration = 30 days;
+
+//     function setUp() public {
+//         // Deploy mocks and the lending facet
+//         lendingToken = new MockERC20("LendingToken", "LEND", 18);
+//         nft = new MockERC721("NFT", "NFT");
+//         lendingFacet = new LendingFacet();
+
+//         // Mint tokens and approve to lendingFacet
+//         lendingToken.mint(borrower, loanAmount);
+//         lendingToken.approve(address(lendingFacet), loanAmount);
+
+//         // Mint an NFT to the borrower
+//         nft.mint(borrower, nftId);
+
+//         // Configure lendingFacet to accept this NFT as collateral
+//         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+//         ds.supportedNFTs[address(nft)] = true;
+//         ds.lendingToken = IERC20(address(lendingToken));
+
+//         // Transfer token balance to lendingFacet to fund loans
+//         lendingToken.mint(address(lendingFacet), loanAmount * 10);
+//     }
+
+//     function testCreateLoan() public {
+//         vm.startPrank(borrower);
+
+//         nft.approve(address(lendingFacet), nftId);
+
+//         uint256 loanId = lendingFacet.createLoan(address(nft), nftId, loanAmount, loanDuration);
+
+//         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+//         LibDiamond.Loan memory loan = ds.loans[loanId];
+
+//         assertEq(loan.borrower, borrower, "Loan borrower should match");
+//         assertEq(loan.nftId, nftId, "NFT ID should match");
+//         assertEq(loan.amount, loanAmount, "Loan amount should match");
+//         assertTrue(loan.active, "Loan should be active");
+
+//         vm.stopPrank();
+//     }
+
+//     function testCannotCreateLoanWithUnsupportedNFT() public {
+//         vm.startPrank(borrower);
+
+//         MockERC721 unsupportedNFT = new MockERC721("UnsupportedNFT", "UNFT");
+//         unsupportedNFT.mint(borrower, nftId);
+//         unsupportedNFT.approve(address(lendingFacet), nftId);
+
+//         vm.expectRevert("NFT not supported");
+//         lendingFacet.createLoan(address(unsupportedNFT), nftId, loanAmount, loanDuration);
+
+//         vm.stopPrank();
+//     }
+
+//     function testRepayLoan() public {
+//         vm.startPrank(borrower);
+
+//         nft.approve(address(lendingFacet), nftId);
+//         uint256 loanId = lendingFacet.createLoan(address(nft), nftId, loanAmount, loanDuration);
+
+//         // Calculate total repayment
+//         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+//         LibDiamond.Loan memory loan = ds.loans[loanId];
+//         uint256 totalRepayment = loan.amount + loan.interest;
+
+//         lendingToken.mint(borrower, totalRepayment);
+//         lendingToken.approve(address(lendingFacet), totalRepayment);
+
+//         lendingFacet.repayLoan(loanId);
+
+//         assertEq(lendingToken.balanceOf(borrower), 0, "Borrower should have repaid");
+//         assertEq(nft.ownerOf(nftId), borrower, "NFT should be returned to borrower");
+
+//         vm.stopPrank();
+//     }
+
+//     function testOnlyBorrowerCanRepayLoan() public {
+//         vm.startPrank(borrower);
+
+//         nft.approve(address(lendingFacet), nftId);
+//         uint256 loanId = lendingFacet.createLoan(address(nft), nftId, loanAmount, loanDuration);
+
+//         vm.stopPrank();
+//         vm.startPrank(address(0x456)); // Some other address
+
+//         vm.expectRevert("Not loan borrower");
+//         lendingFacet.repayLoan(loanId);
+
+//         vm.stopPrank();
+//     }
+
+//     function testLiquidateLoan() public {
+//         vm.startPrank(borrower);
+
+//         nft.approve(address(lendingFacet), nftId);
+//         uint256 loanId = lendingFacet.createLoan(address(nft), nftId, loanAmount, loanDuration);
+
+//         // Simulate loan expiration
+//         vm.warp(block.timestamp + loanDuration + 1);
+
+//         vm.stopPrank();
+//         vm.startPrank(address(0x456)); // Liquidator
+
+//         lendingFacet.liquidateLoan(loanId);
+
+//         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+//         assertFalse(ds.loans[loanId].active, "Loan should be inactive");
+//         assertEq(nft.ownerOf(nftId), address(0x456), "NFT should be transferred to liquidator");
+
+//         vm.stopPrank();
+//     }
+
+//     function testCannotLiquidateActiveLoan() public {
+//         vm.startPrank(borrower);
+
+//         nft.approve(address(lendingFacet), nftId);
+//         uint256 loanId = lendingFacet.createLoan(address(nft), nftId, loanAmount, loanDuration);
+
+//         vm.stopPrank();
+//         vm.startPrank(address(0x456)); // Liquidator
+
+//         vm.expectRevert("Loan not yet eligible for liquidation");
+//         lendingFacet.liquidateLoan(loanId);
+
+//         vm.stopPrank();
+//     }
+// }
 
 
 

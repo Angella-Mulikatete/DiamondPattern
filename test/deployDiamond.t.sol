@@ -29,9 +29,10 @@ contract DiamondDeployer is DiamondUtils, IDiamondCut {
     function testDeployDiamond() public {
         //deploy facets
         dCutFacet = new DiamondCutFacet();
-        diamond = new Diamond(address(nftFacet), address(lendingFacet));
         dLoupe = new DiamondLoupeFacet();
-        // ownerF = new OwnershipFacet();
+        nftFacet = new NFTFacet();
+        lendingFacet = new LendingFacet();
+        diamond = new Diamond(address(nftFacet), address(lendingFacet));
 
         //upgrade diamond with facets
 
